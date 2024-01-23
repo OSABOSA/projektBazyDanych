@@ -1,16 +1,15 @@
 from django.db import models
 
-# Create your models here.
 
+class GameHistory(models.Model):
+    user_id = models.IntegerField()
+    opponent_id = models.IntegerField()
+    discipline = models.CharField(max_length=255)
+    result = models.CharField(max_length=255)
+    has_ended = models.BooleanField()
 
-def create_dynamic_model(table_name):
-    class DynamicModel(models.Model):
-        name = models.CharField(max_length=255)
-
-        class Meta:
-            db_table = table_name
-
-    return DynamicModel
+    class Meta:
+        db_table = 'game_history'
 
 
 class User(models.Model):

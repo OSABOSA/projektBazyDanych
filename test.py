@@ -86,8 +86,20 @@ def search_activity(e):
 
 
 def create_game(e):
-    urls = ['http://127.0.0.1:8000/app_frontend/add_entries_to_dynamic_table/']
+    urls = ['http://127.0.0.1:8000/app_frontend/add_entries_to_history/']
     data = {'username': username.value, 'opponent': opponent.value, 'result': result.value, 'sport': sport.value}
+    for url in urls:
+        post_response = requests.post(url, data=data)
+
+        if post_response.status_code == 200:
+            print(post_response.json())
+        else:
+            print(f'Error: {post_response.json()}')
+
+
+def update_elo(e):
+    urls = ['http://127.0.0.1:8000/app_frontend/update_elo/']
+    data = {'username': username.value, 'elo': elo.value, 'result': result.value, 'sport': sport.value}
     for url in urls:
         post_response = requests.post(url, data=data)
 
@@ -104,6 +116,7 @@ bt_add_activity = ft.FloatingActionButton(text='add activity', on_click=add_acti
 bt_delete_activity = ft.FloatingActionButton(text='delete activity', on_click=delete_activity)
 bt_search_activity = ft.FloatingActionButton(text='search activity', on_click=search_activity)
 bt_create_game = ft.FloatingActionButton(text='create game', on_click=create_game)
+bt_update_elo = ft.FloatingActionButton(text='update elo', on_click=update_elo)
 
 
 user_list_label = ft.Text('User List:')
@@ -165,6 +178,7 @@ def main(page: ft.Page):
             opponent,
             result,
             bt_create_game,
+            bt_update_elo,
         ]))
 
 

@@ -4,11 +4,10 @@ from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.middleware.csrf import get_token
-from .models import User, Activity, create_dynamic_model, Discipline
+from .models import User, Activity, Discipline, GameHistory
 
 # views.py
 from django.http import JsonResponse
-from .models import create_dynamic_model
 from django.apps import apps
 from django.db import connection
 from django.db.utils import ProgrammingError
@@ -80,56 +79,22 @@ def delete_user(request):
 
 
 @csrf_exempt
-def create_table_and_add_entries(request):
-    table_name = request.POST.get('table_name', '')
-
-    if not table_name:
-        return JsonResponse({'error': 'Table name is required'}, status=400)
-
-    # Ensure the model is not already registered
-    if not apps.is_installed('app_frontend'):
-        apps.app_configs['app_frontend'] = AppConfig('app_frontend', 'app_frontend')
-
-    model_class_name = f'DynamicModel_{table_name}'
-
-    if model_class_name not in globals():
-        # Create the dynamic model
-        class DynamicModel(models.Model):
-            opponent_id = models.IntegerField()
-            discipline = models.CharField(max_length=255)
-            result = models.CharField(max_length=255)
-            has_ended = models.BooleanField()
-
-            class Meta:
-                db_table = f'{table_name}'
-
-        globals()[model_class_name] = DynamicModel
-
-        # Create the table
-        with connection.schema_editor() as schema_editor:
-            schema_editor.create_model(DynamicModel)
-
-        return JsonResponse({'message': 'Table created successfully'}, status=200)
-    else:
-        return JsonResponse({'error': 'Table already exists'}, status=400)
-
-
-@csrf_exempt
-def add_entries_to_dynamic_table(request):
+def add_entries_to_history(request):
     try:
         username = request.POST.get('username', '')
+        user_id = username_to_user_id(username)
         opponent_id = username_to_user_id(request.POST.get('opponent', ''))
         discipline = request.POST.get('sport', '')
         result = request.POST.get('result', '')
         has_ended = True
-        dynamic_model = globals()[f'DynamicModel_{username}']
 
         # Validate that all required fields are present
-        if not opponent_id or not discipline or not result or has_ended is None:
+        if not user_id or not opponent_id or not discipline or not result or has_ended is None:
             return JsonResponse({'error': 'All fields are required for the entry'}, status=400)
 
         # Create entries in the table using data from the POST request
-        dynamic_model.objects.create(
+        GameHistory.objects.create(
+            user_id=user_id,
             opponent_id=opponent_id,
             discipline=discipline,
             result=result,
@@ -141,6 +106,28 @@ def add_entries_to_dynamic_table(request):
         return JsonResponse({'error': f'DynamicModel_{username} not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': f'Error adding entries: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+def update_elo(request):
+    try:
+        user_id = username_to_user_id(request.POST.get('username', ''))
+        discipline_id = name_to_discipline_id(request.POST.get('sport', ''))
+        new_elo = request.POST.get('elo', '')
+        result = request.POST.get('result', '')
+        # Get the activity record based on user_id and discipline_id
+        activity = Activity.objects.get(user_id=user_id, discipline_id=discipline_id)
+
+        # Update the elo field
+        activity.elo = new_elo
+        activity.save()
+
+        return {'message': f'Elo updated successfully for user {user_id} in discipline {discipline_id}'}
+    except Activity.DoesNotExist:
+        return {'error': f'Activity not found for user {user_id} in discipline {discipline_id}'}
+    except Exception as e:
+        return {'error': f'Error updating elo: {str(e)}'}
+
 
 
 @csrf_exempt
