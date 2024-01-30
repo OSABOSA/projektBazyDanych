@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'bazy.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bazy_db',
+        'NAME': 'app',
         'USER': 'root',
         'PASSWORD': 'osabosa_O1',
         'HOST': 'localhost',
